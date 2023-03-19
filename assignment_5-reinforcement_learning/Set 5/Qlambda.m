@@ -1,0 +1,162 @@
+function [normQlambda_mean, normQlambda_var] = Qlambda
+run scenario
+run Qiteration
+close
+
+gamma = 0.9; lambda = 0.9;
+alpha = 0.7; epsilon = 0.4;
+maxSteps = 100; maxIt= 300000; 
+X = 70;
+normval2 = zeros(X, maxIt);
+
+for x = 1:X
+    Q = zeros(n, 4); e = zeros(n, 4);
+    for in = 1:maxIt
+        i = 0;
+        episode = true;
+        s = S; a = 1;
+        while episode
+            i = i+1;
+            if i <= maxSteps && s~=G
+                if a == 1
+                    next_s = ssl_left(2,s);
+                    r = R_left(s,next_s);
+                elseif a == 2
+                    next_s = ssl_right(2,s);
+                    r = R_right(s,next_s);
+                elseif a == 3
+                    next_s = ssl_up(2,s);
+                    r = R_up(s,next_s);
+                elseif a == 4
+                    r = R_down(s,next_s);
+                    next_s = ssl_down(2,s);
+                end
+                
+                % choose aprime from next_s using epsilon-greedy
+                [~,aprime] = max(Q(next_s,:));
+                prob = rand;
+                if prob < epsilon
+                    aprime = randperm(4,1);
+                end
+                
+                % astar
+                Qb = Q(next_s,:);
+                [vali, astar] = max(Qb); c = find(Qb==vali);
+                if ismember(aprime,c)
+                    astar = aprime;
+                end
+                
+                % delta
+                delta = r+gamma*Q(next_s,astar) - Q(s,a);
+                % e
+                e(s,a) = e(s,a)+1;
+                
+                %for all s,a
+                for s = 1:63
+                    for a = 1:4
+                        Q(s,a) = Q(s,a) + alpha*delta*e(s,a);
+                        if aprime == astar
+                            e(s,a) = gamma*lambda*e(s,a);
+                        else
+                            e(s,a) = 0;
+                        end
+                    end
+                end
+                s = next_s;
+                a = aprime;
+            else
+                episode = false;
+            end
+        end
+        %     Qstar = max(Q,[],2);
+        %     if ~isequal(Q,zeros(size(Q))) && norm(Qstar-V,2) < 0.001
+        %         iterations = false;
+        %     end
+        [V3, ~] = max(Q,[],2);
+        normval2(x,in) = norm(V3-V,2);
+    end
+end
+normQlambda_mean = mean(normval2); normQlambda_mean = normQlambda_mean(100:end);
+normQlambda_var = var(normval2);normQlambda_var = normQlambda_var(100:end);
+end
+
+% run scenario
+% run Qiteration
+%
+% gamma = 0.9; lambda = 0.9;
+% alpha = 0.7; epsilon = 0.3;
+% maxSteps = 100; maxIt= 500;
+% Q = zeros(n, 4); e = zeros(n, 4);
+% normval2 = zeros(100, maxIt);
+%
+% in = 0;
+% iterations = true;
+% while iterations
+%     in = in+1;
+%     i = 0;
+%     episode = true;
+%     s = S; a = 1;
+%     while episode
+%         i = i+1;
+%         if i <= maxSteps && s~=G
+%             if a == 1
+%                 next_s = ssl_left(2,s);
+%                 r = R_left(s,next_s);
+%             elseif a == 2
+%                 next_s = ssl_right(2,s);
+%                 r = R_right(s,next_s);
+%             elseif a == 3
+%                 next_s = ssl_up(2,s);
+%                 r = R_up(s,next_s);
+%             elseif a == 4
+%                 r = R_down(s,next_s);
+%                 next_s = ssl_down(2,s);
+%             end
+%
+%             % choose aprime from next_s using epsilon-greedy
+%             [~,aprime] = max(Q(next_s,:));
+%             prob = rand;
+%             if prob < epsilon
+%                 aprime = randperm(4,1);
+%             end
+%
+%             % astar
+%             Qb = Q(next_s,:);
+%             [vali, astar] = max(Qb); c = find(Qb==vali);
+%             if ismember(aprime,c)
+%                 astar = aprime;
+%             end
+%
+%             % delta
+%             delta = r+gamma*Q(next_s,astar) - Q(s,a);
+%             % e
+%             e(s,a) = e(s,a)+1;
+%
+%             %for all s,a
+%             for s = 1:63
+%                 for a = 1:4
+%                     Q(s,a) = Q(s,a) + alpha*delta*e(s,a);
+%                     if aprime == astar
+%                         e(s,a) = gamma*lambda*e(s,a);
+%                     else
+%                         e(s,a) = 0;
+%                     end
+%                 end
+%             end
+%             s = next_s;
+%             a = aprime;
+%         else
+%             episode = false;
+%         end
+%     end
+%
+%     Qstar = max(Q,[],2);
+%     if ~isequal(Q,zeros(size(Q))) && norm(Qstar-V,2) < 0.001
+%         iterations = false;
+%     end
+% end
+% V3 = zeros(n,1); pi = zeros(n,1);
+% for s = 1:n
+%     [V3(s), pi(s)] = max(Q(s,:));
+% end
+% maze_figure2(V3,pi)
